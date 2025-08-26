@@ -26,13 +26,45 @@ def get_dummy_patients_pool():
 
     conn = get_pg_connection()
     try:
-        with conn.cursor() as cursor:
-            cursor.execute(query)
-            columns = [desc[0] for desc in cursor.description]  # column names
-            rows = cursor.fetchall()
-            for row in rows:
-                results.append(dict(zip(columns, row)))
+        cursor = conn.cursor()
+        cursor.execute(query)
+        columns = [desc[0] for desc in cursor.description]  # column names
+        rows = cursor.fetchall()
+
+        for row in rows:
+            results.append(dict(zip(columns, row)))
+
+        cursor.close()
     finally:
         conn.close()
 
     return results
+
+def insert_data(table: str, data: dict):
+    """
+    Insert a single row into PostgreSQL using an existing Cloud SQL pg8000 connection.
+
+    Args:
+        conn: pg8000 connection from get_pg_connection()
+        table (str): Table name
+        data (dict): Column-value pairs to insert
+    """
+    conn = get_pg_connection()
+    try:
+        with conn.cursor() as cur:
+            columns = list(data.keys())
+            values = list(data.values())
+
+            placeholders = ", ".join(["%s"] * len(columns))
+            query = f"""
+                INSERT INTO {table} ({', '.join(columns)})
+                VALUES ({placeholders})
+            """
+
+            cur.execute(query, values)
+        conn.commit()
+        print("✅ Insert successful!")
+
+    except Exception as e:
+        conn.rollback()
+        print("❌ Error inserting data:", e)
