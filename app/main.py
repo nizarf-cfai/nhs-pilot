@@ -40,3 +40,6 @@ def get_dummy_patients():
     Fetch all dummy patients from the database.
     """
     return db_ops.get_dummy_patients_pool()
+
+
+
