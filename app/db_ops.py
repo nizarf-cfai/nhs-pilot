@@ -15,3 +15,24 @@ def get_pg_connection():
         password=config.DB_PASSWORD,
         db=config.DB_NAME
     )
+
+
+def get_dummy_patients_pool():
+    """
+    Fetch all rows from dummy_patients table and return as a list of dictionaries.
+    """
+    query = "SELECT * FROM dummy_patients"
+    results = []
+
+    conn = get_pg_connection()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute(query)
+            columns = [desc[0] for desc in cursor.description]  # column names
+            rows = cursor.fetchall()
+            for row in rows:
+                results.append(dict(zip(columns, row)))
+    finally:
+        conn.close()
+
+    return results

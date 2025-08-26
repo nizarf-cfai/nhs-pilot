@@ -1,30 +1,25 @@
-from fastapi import FastAPI, Request, HTTPException, BackgroundTasks
-from google.cloud import storage
-from pydantic import BaseModel
-from typing import Any
+
+
 import json
 import datetime
-# from app.discovery import PubMedCT
-import app.discovery as discovery
-import app.doc_process as doc_process
-import os
-from typing import List
-from google.cloud import storage
-
-from vertexai.language_models import TextEmbeddingModel
-from google.cloud import aiplatform
-from concurrent.futures import ThreadPoolExecutor
-import math
-import requests
-import threading
-import pandas as pd
 import traceback
-from psycopg2.extras import execute_values
+import os
+import math
+import pandas as pd
 import uuid
+import requests
+
+from typing import List, Dict, Any
+from pydantic import BaseModel
+
+from fastapi import FastAPI, Request, HTTPException, BackgroundTasks
+from google.cloud import storage
 import google.auth
 import google.auth.transport.requests
-import requests
+
+
 import app.gcs_operation as gcs_operation
+import app.db_ops as db_ops
 
 app = FastAPI()
 
@@ -37,3 +32,11 @@ def read_root():
 def echo(text: str):
     return {"echo": text}
 
+
+
+@app.get("/dummy_patients", response_model=List[Dict])
+def get_dummy_patients():
+    """
+    Fetch all dummy patients from the database.
+    """
+    return db_ops.get_dummy_patients_pool()
