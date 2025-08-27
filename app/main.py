@@ -22,7 +22,9 @@ import app.db_ops as db_ops
 
 app = FastAPI()
 
-
+class JobRun(BaseModel):
+    args: List[str]  # e.g., "CTgov"
+    
 
 class DrugRequest(BaseModel):
     drug_list: List[str]
@@ -64,3 +66,64 @@ def process_drugs(request: DrugRequest):
         "drug_flag": len(matched_drugs) > 0,
         "drug_list": matched_drugs
     }
+
+
+def trigger_cloud_run_job(
+    project_id: str,
+    region: str,
+    job_name: str,
+    args: list[str] = None,
+):
+    credentials, _ = google.auth.default(scopes=["https://www.googleapis.com/auth/cloud-platform"])
+    auth_req = google.auth.transport.requests.Request()
+    credentials.refresh(auth_req)
+
+    url = (
+        f"https://{region}-run.googleapis.com/apis/run.googleapis.com/v1/"
+        f"namespaces/{project_id}/jobs/{job_name}:run"
+    )
+
+    payload = {}
+    if args:
+        payload = {
+            "overrides": {
+                "containerOverrides": [
+                    {
+                        "args": args  # MUST be a list like ["clinical", "drug_name=Ivacaftor"]
+                    }
+                ]
+            }
+        }
+
+    headers = {
+        "Authorization": f"Bearer {credentials.token}",
+        "Content-Type": "application/json"
+    }
+
+    r = requests.post(url, headers=headers, json=payload)
+    r.raise_for_status()
+    return r.json()
+
+
+@app.post("/run-job/")
+def process_job(payload : JobRun):
+    try:
+        trigger_cloud_run_job(
+            project_id = "genevest-backend",
+            region='europe-west1',
+            job_name = 'genevest-job-run',
+            # args=["discovery", "source=GUNCR", "keyword=neurology"]
+            args = payload.args
+        )
+        return {
+            "status":"success"
+        }
+    except:
+        err = traceback.print_exc()
+        return {
+            "status":str(err)
+        }
+    
+
+
+
