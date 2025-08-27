@@ -1,6 +1,6 @@
 from google.cloud.sql.connector import Connector
 import pg8000  # PostgreSQL driver
-import config
+import app.config as config
 
 
 # Cloud SQL connector
