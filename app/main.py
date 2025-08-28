@@ -64,8 +64,8 @@ def process_drugs(payload: DrugRequest):
         "drug_list" : payload.drug_list
     }
     
-    gcs_operation(f"process/{process_id}/patient_pool.json", patient_pool)
-    gcs_operation(f"process/{process_id}/drug_watch.json", drug_watch)
+    gcs_operation.write_json_to_gcs(f"process/{process_id}/patient_pool.json", patient_pool)
+    gcs_operation.write_json_to_gcs(f"process/{process_id}/drug_watch.json", drug_watch)
 
 
     return {
