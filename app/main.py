@@ -53,18 +53,24 @@ def get_dummy_patients():
 
 
 @app.post("/process")
-def process_drugs(request: DrugRequest):
+def process_drugs(payload: DrugRequest):
     """
     Process a list of drugs sent in the request payload.
     """
     process_id ="process-" + str(uuid.uuid5(uuid.NAMESPACE_DNS, str(datetime.now())))
     # For demo, just echo back the drugs with a flag
     patient_pool = db_ops.get_dummy_patients_pool()
-    matched_drugs = [drug for drug in request.drug_list if drug.lower() in ["paracetamol", "ibuprofen", "acetaminophen"]]
+    drug_watch = {
+        "drug_list" : payload.drug_list
+    }
     
+    gcs_operation(f"process/{process_id}/patient_pool.json", patient_pool)
+    gcs_operation(f"process/{process_id}/drug_watch.json", drug_watch)
+
+
     return {
-        "drug_flag": len(matched_drugs) > 0,
-        "drug_list": matched_drugs
+        "process_id": process_id,
+        "drug_list": drug_watch
     }
 
 

@@ -6,27 +6,22 @@ import pg8000  # PostgreSQL driver
 import traceback
 import app.config as config
 
-DB_CONNECTION_NAME = "genevest-backend:us-central1:genevest-db"
-DB_USER = "postgres"
-DB_PASSWORD = "postgres"
-DB_NAME = "postgres"
-
 connector = Connector()
 
 def get_pg_connection():
     return connector.connect(
-        DB_CONNECTION_NAME,
+        config.DB_CONNECTION_NAME,
         "pg8000",
-        user=DB_USER,
-        password=DB_PASSWORD,
-        db=DB_NAME
+        user=config.DB_USER,
+        password=config.DB_PASSWORD,
+        db=config.DB_NAME
     )
     
 def write_status(file_name :str, value :dict):
     write_or_update_json_to_gcs(config.BUCKET, f"status/{file_name}", value)
 
-def write_text_to_gcs(bucket_name: str, blob_name: str, text_content: str):
-
+def write_text_to_gcs(blob_name: str, text_content: str):
+    bucket_name = config.BUCKET
     try:
         storage_client = storage.Client()
         bucket = storage_client.bucket(bucket_name)
@@ -39,8 +34,8 @@ def write_text_to_gcs(bucket_name: str, blob_name: str, text_content: str):
     except Exception as e:
         print(f"❌ Error writing text to GCS: {e}")
         
-def write_json_to_gcs(bucket_name: str, blob_name: str, json_data: dict | list):
-
+def write_json_to_gcs(blob_name: str, json_data: dict | list):
+    bucket_name = config.BUCKET
     try:
         storage_client = storage.Client()
         bucket = storage_client.bucket(bucket_name)
@@ -59,18 +54,8 @@ def write_json_to_gcs(bucket_name: str, blob_name: str, json_data: dict | list):
         err = traceback.print_exc()
         return str(err)
         
-def read_text_from_gcs(bucket_name: str, blob_name: str) -> str:
-    """
-    Reads the content of a GCS blob as a string.
-
-    Args:
-        bucket_name (str): The name of the GCS bucket.
-        blob_name (str): The full path/name of the object in the bucket
-                         (e.g., "logs/my_log_file.txt").
-    
-    Returns:
-        str: The content of the GCS blob.
-    """
+def read_text_from_gcs(blob_name: str) -> str:
+    bucket_name = config.BUCKET
     try:
         storage_client = storage.Client()
         bucket = storage_client.bucket(bucket_name)
@@ -86,7 +71,8 @@ def read_text_from_gcs(bucket_name: str, blob_name: str) -> str:
         print(f"❌ Error reading text from GCS: {e}")
         return ""
     
-def read_json_from_gcs(bucket_name: str, blob_name: str) -> dict | list:
+def read_json_from_gcs(blob_name: str) -> dict | list:
+    bucket_name = config.BUCKET
     try:
         storage_client = storage.Client()
         bucket = storage_client.bucket(bucket_name)
@@ -106,7 +92,8 @@ def read_json_from_gcs(bucket_name: str, blob_name: str) -> dict | list:
         return None
     
     
-def write_or_update_json_to_gcs(bucket_name: str, blob_name: str, update_data: dict):
+def write_or_update_json_to_gcs(blob_name: str, update_data: dict):
+    bucket_name = config.BUCKET
     try:
         client = storage.Client()
         bucket = client.bucket(bucket_name)
