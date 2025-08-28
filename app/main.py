@@ -64,10 +64,21 @@ def process_drugs(payload: DrugRequest):
         "drug_list" : payload.drug_list
     }
     
+    for p in patient_pool:
+        p['process_id'] = process_id
+        p['drug_watch'] = payload.drug_list
+
     gcs_operation.write_json_to_gcs(f"process/{process_id}/patient_pool.json", patient_pool)
     gcs_operation.write_json_to_gcs(f"process/{process_id}/drug_watch.json", drug_watch)
 
-
+    trigger_cloud_run_job(
+            project_id = "medforce-pilot-backend",
+            region='europe-west1',
+            job_name = 'job-runner',
+            args=["run_process", f"process_id={process_id}"]
+            # args = payload.args
+        )
+    
     return {
         "process_id": process_id,
         "drug_list": drug_watch
