@@ -106,44 +106,6 @@ def read_json_from_gcs(bucket_name: str, blob_name: str) -> dict | list:
         return None
     
     
-    
-
-    
-def get_urls_for_drug(drug_name: str) -> list[str]:
-    """
-    Retrieves the 'urls' for the first record matching a given drug name.
-    
-    Args:
-        drug_name (str): The name of the drug to search for.
-        
-    Returns:
-        list[str]: The list of URLs, or an empty list if not found.
-    """
-    try:
-        conn = get_pg_connection()
-        cur = conn.cursor()
-
-        # Execute a parameterized query to get the 'urls' for the first match
-        cur.execute("SELECT urls FROM drug_card_enriched WHERE drug_name = %s LIMIT 1", (drug_name,))
-        
-        # Fetch only the first record
-        row = cur.fetchone()
-
-        # Check if a record was found and return the 'urls' value
-        if row:
-            # The 'urls' value is the first element of the tuple (row[0])
-            urls_list = row[0]
-        else:
-            urls_list = []
-
-        cur.close()
-        conn.close()
-        return urls_list
-
-    except Exception as e:
-        print(f"Error fetching URLs for drug '{drug_name}': {e}")
-        return []
-    
 def write_or_update_json_to_gcs(bucket_name: str, blob_name: str, update_data: dict):
     try:
         client = storage.Client()
