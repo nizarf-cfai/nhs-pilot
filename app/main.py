@@ -11,7 +11,7 @@ import requests
 
 from typing import List, Dict, Any
 from pydantic import BaseModel
-
+import asyncio
 from fastapi import FastAPI, Request, HTTPException, BackgroundTasks
 from google.cloud import storage
 import google.auth
@@ -59,11 +59,11 @@ def read_root():
 def echo(text: str):
     return {"echo": text}
 
-
 @app.on_event("startup")
-def startup_load_vector_db():
+async def startup_load_vector_db():
     """Trigger vector DB loading in background on Cloud Run boot."""
-    def _background_load():
+
+    async def _background_load():
         global retriever
         with retriever_lock:
             try:
@@ -76,8 +76,26 @@ def startup_load_vector_db():
             except Exception as e:
                 print(f"❌ Startup vector DB load failed: {e}")
 
-    # Run in separate thread so it doesn't block health check
-    threading.Thread(target=_background_load, daemon=True).start()
+    asyncio.create_task(_background_load())
+
+# @app.on_event("startup")
+# def startup_load_vector_db():
+#     """Trigger vector DB loading in background on Cloud Run boot."""
+#     def _background_load():
+#         global retriever
+#         with retriever_lock:
+#             try:
+#                 print("🔄 Loading vector DB on startup...")
+#                 if not download_from_gcs():
+#                     print("📭 No vector DB found in GCS. Creating new one.")
+#                     create_empty_vectorstore()
+#                 retriever = get_retriever()
+#                 print("✅ Vector DB loaded on startup.")
+#             except Exception as e:
+#                 print(f"❌ Startup vector DB load failed: {e}")
+
+#     # Run in separate thread so it doesn't block health check
+#     threading.Thread(target=_background_load, daemon=True).start()
 
 @app.get("/load_vector_db/")
 def load_vector_db():
