@@ -16,11 +16,32 @@ from fastapi import FastAPI, Request, HTTPException, BackgroundTasks
 from google.cloud import storage
 import google.auth
 import google.auth.transport.requests
-
+import threading
 import app.gcs_operation as gcs_operation
 import app.db_ops as db_ops
+from app.vdb_utils import (
+    get_retriever,
+    push_to_gcs,
+    add_to_vectorstore,
+    download_from_gcs,
+    create_empty_vectorstore,
+    add_json_to_vectorstore
+)
+
 
 app = FastAPI()
+# Lazy init — global retriever and lock
+retriever = None
+retriever_lock = threading.Lock()
+
+class AddDocRequest(BaseModel):
+    doc_id: str
+    gcs_path: str = None
+    text_content: str = None  # optional if using gcs_path
+    json_obj: dict = None  # optional if using gcs_path
+
+class QueryRequest(BaseModel):
+    q: str
 
 class JobRun(BaseModel):
     args: List[str]  # e.g., "CTgov"
@@ -38,6 +59,89 @@ def read_root():
 def echo(text: str):
     return {"echo": text}
 
+
+@app.on_event("startup")
+def startup_load_vector_db():
+    """Trigger vector DB loading in background on Cloud Run boot."""
+    def _background_load():
+        global retriever
+        with retriever_lock:
+            try:
+                print("🔄 Loading vector DB on startup...")
+                if not download_from_gcs():
+                    print("📭 No vector DB found in GCS. Creating new one.")
+                    create_empty_vectorstore()
+                retriever = get_retriever()
+                print("✅ Vector DB loaded on startup.")
+            except Exception as e:
+                print(f"❌ Startup vector DB load failed: {e}")
+
+    # Run in separate thread so it doesn't block health check
+    threading.Thread(target=_background_load, daemon=True).start()
+
+@app.get("/load_vector_db/")
+def load_vector_db():
+    """
+    Manually triggers loading the vector DB from GCS.
+    If not found, creates a new empty one.
+    """
+    global retriever
+    with retriever_lock:
+        try:
+            print("🔄 Loading vector DB from GCS...")
+            if not download_from_gcs():
+                print("📭 No existing vector DB found in GCS. Creating empty vector DB...")
+                create_empty_vectorstore()
+            retriever = get_retriever()
+            print("✅ Vector DB loaded and retriever is ready.")
+            return {"status": "loaded"}
+        except Exception as e:
+            print(f"❌ Error loading vector DB: {e}")
+            return {"status": "error", "message": str(e)}
+
+def ensure_vectorstore_loaded():
+    global retriever
+    with retriever_lock:
+        if retriever is None:
+            raise RuntimeError("Vector DB not loaded. Please call /load_vector_db/ first.")
+
+@app.post("/query")
+def query_vector(payload: QueryRequest):
+    ensure_vectorstore_loaded()
+    docs = retriever.invoke(payload.q)
+    
+    result = []
+    for doc in docs:
+        res_str = ""
+        res_str += f"Source : {doc.metadata.get('source')}\n"
+        res_str += f"Content : {doc.page_content}\n\n"
+        result.append(res_str)
+    
+    return result
+
+@app.post("/add-doc/")
+def add_document(payload: AddDocRequest):
+    ensure_vectorstore_loaded()
+    add_to_vectorstore(payload.doc_id,payload.text_content , payload.gcs_path)
+    push_to_gcs()
+    return {"status": "added", "id": payload.doc_id}
+
+
+@app.post("/add-json/")
+def add_document(payload: AddDocRequest):
+    try:
+        ensure_vectorstore_loaded()
+        add_json_to_vectorstore(
+            doc_id = payload.doc_id,
+            json_obj = payload.json_obj , 
+            gcs_path = payload.gcs_path
+            )
+        push_to_gcs()
+        return {"status": "added", "id": payload.doc_id}
+    except:
+        err = traceback.print_exc()
+        return {"status": str(err), "id": payload.doc_id}
+    
 
 
 @app.get("/dummy_patients", response_model=List[Dict])
