@@ -50,6 +50,10 @@ class JobRun(BaseModel):
 class DrugRequest(BaseModel):
     drug_list: List[str]
 
+class PatientRequest(BaseModel):
+    process_id: str
+    patient_id: str
+
 
 @app.get("/")
 def read_root():
@@ -78,24 +82,7 @@ async def startup_load_vector_db():
 
     asyncio.create_task(_background_load())
 
-# @app.on_event("startup")
-# def startup_load_vector_db():
-#     """Trigger vector DB loading in background on Cloud Run boot."""
-#     def _background_load():
-#         global retriever
-#         with retriever_lock:
-#             try:
-#                 print("🔄 Loading vector DB on startup...")
-#                 if not download_from_gcs():
-#                     print("📭 No vector DB found in GCS. Creating new one.")
-#                     create_empty_vectorstore()
-#                 retriever = get_retriever()
-#                 print("✅ Vector DB loaded on startup.")
-#             except Exception as e:
-#                 print(f"❌ Startup vector DB load failed: {e}")
 
-#     # Run in separate thread so it doesn't block health check
-#     threading.Thread(target=_background_load, daemon=True).start()
 
 @app.get("/load_vector_db/")
 def load_vector_db():
@@ -205,6 +192,17 @@ def process_drugs(payload: DrugRequest):
         "process_id": process_id,
         "drug_list": drug_watch
     }
+
+@app.post("/get_patient")
+def process_drugs(payload: PatientRequest):
+    """
+    Process a list of drugs sent in the request payload.
+    """
+    process_id = payload.get('process_id')
+    patient_id = payload.get('patient_id')
+
+    data = gcs_operation.read_json_from_gcs(f"process/{process_id}/patients/{patient_id}/{patient_id}.json")
+    return data
 
 
 def trigger_cloud_run_job(

@@ -17,6 +17,7 @@ def get_pg_connection():
         db=config.DB_NAME
     )
     
+
 def write_status(file_name :str, value :dict):
     write_or_update_json_to_gcs(config.BUCKET, f"status/{file_name}", value)
 
