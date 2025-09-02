@@ -54,6 +54,8 @@ class PatientRequest(BaseModel):
     process_id: str
     patient_id: str
 
+class ProcessRequest(BaseModel):
+    process_id: str
 
 @app.get("/")
 def read_root():
@@ -202,6 +204,16 @@ def process_drugs(payload: PatientRequest):
     patient_id = payload.patient_id
 
     data = gcs_operation.read_json_from_gcs(f"process/{process_id}/patients/{patient_id}/{patient_id}.json")
+    return data
+
+@app.post("/get_process_patients")
+def process_drugs(payload: ProcessRequest):
+    """
+    Process a list of drugs sent in the request payload.
+    """
+    process_id = payload.process_id
+
+    data = gcs_operation.read_json_from_gcs(f"process/{process_id}/patient_pool.json")
     return data
 
 
