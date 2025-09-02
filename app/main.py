@@ -198,8 +198,8 @@ def process_drugs(payload: PatientRequest):
     """
     Process a list of drugs sent in the request payload.
     """
-    process_id = payload.get('process_id')
-    patient_id = payload.get('patient_id')
+    process_id = payload.process_id
+    patient_id = payload.patient_id
 
     data = gcs_operation.read_json_from_gcs(f"process/{process_id}/patients/{patient_id}/{patient_id}.json")
     return data
