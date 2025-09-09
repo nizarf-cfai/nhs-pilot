@@ -157,7 +157,11 @@ def get_dummy_patients():
     Fetch all dummy patients from the database.
     """
     try:
-        return db_ops.get_dummy_patients_pool()
+        # return db_ops.get_dummy_patients_pool()
+        patient_list = gcs_operation.list_gcs_children('gs://nhs_pilot/dummy_patients')
+
+        return patient_list
+
     except Exception as e:
         error = traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(error))

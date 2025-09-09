@@ -1,22 +1,46 @@
 import os
 from google.cloud import storage
 import json
-from google.cloud.sql.connector import Connector
-import pg8000  # PostgreSQL driver
+
 import traceback
 import app.config as config
 
-connector = Connector()
 
-def get_pg_connection():
-    return connector.connect(
-        config.DB_CONNECTION_NAME,
-        "pg8000",
-        user=config.DB_USER,
-        password=config.DB_PASSWORD,
-        db=config.DB_NAME
-    )
+def list_gcs_children(uri: str) -> list:
+    """
+    List immediate children of a GCS path.
+
+    Args:
+        uri (str): GCS path in format gs://bucket_name/prefix/
+
+    Returns:
+        list: Immediate child paths under the given GCS path.
+    """
+    if not uri.startswith("gs://"):
+        raise ValueError("GCS URI must start with 'gs://'")
+
+    # Parse bucket and prefix
+    path_parts = uri[5:].split("/", 1)
+    bucket_name = path_parts[0]
+    prefix = path_parts[1] if len(path_parts) > 1 else ""
+    if prefix and not prefix.endswith("/"):
+        prefix += "/"
+
+    client = storage.Client()
+    bucket = client.bucket(bucket_name)
+
+    # list blobs with delimiter to get only immediate children
+    blobs = client.list_blobs(bucket, prefix=prefix, delimiter="/")
+
+    # Immediate files
+    files = [blob.name for blob in blobs]
+
+    # Immediate "folders" (prefixes)
+    folders = list(blobs.prefixes)
     
+    res_files = files + folders
+    res_files = [f"gs://{bucket_name}/" + i   for i in res_files]
+    return res_files
 
 def write_status(file_name :str, value :dict):
     write_or_update_json_to_gcs(config.BUCKET, f"status/{file_name}", value)
