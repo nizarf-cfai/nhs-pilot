@@ -156,11 +156,29 @@ def get_dummy_patients():
     """
     Fetch all dummy patients from the database.
     """
+    results = []
     try:
         # return db_ops.get_dummy_patients_pool()
         patient_list = gcs_operation.list_gcs_children('gs://nhs_pilot/dummy_patients')
 
-        return patient_list
+        for p in patient_list:
+            rec = {
+                    "patient_id" : p.split('/')[-1],
+                    "patient_bucket_path" : p
+                }
+            patient_profile = gcs_operation.read_json_from_gcs(f"{p}/patient_profile.json")
+            rec['name'] = patient_profile.get('name','')
+            rec['sex'] = patient_profile.get('sex','')
+            rec['birth_date'] = patient_profile.get('birth_date','')
+            rec['age_years'] = patient_profile.get('age_years','')
+            rec['phone'] = patient_profile.get('phone','')
+            rec['email'] = patient_profile.get('email','')
+            rec['city'] = patient_profile.get('city','')
+            rec['state_province'] = patient_profile.get('state_province','')
+            rec['country'] = patient_profile.get('country','')
+
+            results.append(rec)
+        return results
 
     except Exception as e:
         error = traceback.print_exc()
