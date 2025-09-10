@@ -164,10 +164,10 @@ def get_dummy_patients():
         for p in patient_list:
             print("Patient item :",p)
             rec = {
-                    "patient_id" : p.split('/')[-1],
+                    "patient_id" : p.split('/')[-2],
                     "patient_bucket_path" : p
                 }
-            patient_profile = gcs_operation.read_json_from_gcs(f"{p}/patient_profile.json")
+            patient_profile = gcs_operation.read_json_from_gcs(f"{p}patient_profile.json")
             if patient_profile:
                 rec['name'] = patient_profile.get('name','')
                 rec['sex'] = patient_profile.get('sex','')
