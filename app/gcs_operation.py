@@ -39,7 +39,7 @@ def list_gcs_children(uri: str) -> list:
     folders = list(blobs.prefixes)
     
     res_files = files + folders
-    res_files = [f"gs://{bucket_name}" + i   for i in res_files]
+    res_files = [f"gs://{bucket_name}/" + i   for i in res_files]
     return res_files
 
 def write_status(file_name :str, value :dict):

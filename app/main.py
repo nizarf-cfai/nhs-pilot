@@ -162,6 +162,7 @@ def get_dummy_patients():
         patient_list = gcs_operation.list_gcs_children('gs://nhs_pilot/dummy_patients2')
 
         for p in patient_list:
+            print("Patient item :",p)
             rec = {
                     "patient_id" : p.split('/')[-1],
                     "patient_bucket_path" : p
