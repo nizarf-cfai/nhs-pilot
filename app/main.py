@@ -194,7 +194,8 @@ def process_drugs(payload: DrugRequest):
     """
     process_id ="process-" + str(uuid.uuid5(uuid.NAMESPACE_DNS, str(datetime.now())))
     # For demo, just echo back the drugs with a flag
-    patient_pool = db_ops.get_dummy_patients_pool()
+    # patient_pool = db_ops.get_dummy_patients_pool()
+    patient_pool = get_dummy_patients()
     drug_watch = {
         "drug_list" : payload.drug_list
     }
