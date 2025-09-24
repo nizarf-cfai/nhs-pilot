@@ -50,6 +50,12 @@ class JobRun(BaseModel):
 class DrugRequest(BaseModel):
     drug_list: List[str]
 
+class ProcessUnit(BaseModel):
+    process_id: str
+    patient_id: str
+    mode: str
+    var: dict
+
 class PatientRequest(BaseModel):
     process_id: str
     patient_id: str
@@ -298,6 +304,31 @@ def process_job(payload : JobRun):
             "status":str(err)
         }
     
+@app.post("/process-unit")
+def process_unit(payload: ProcessUnit):
+
+    process_id = payload.process_id
+    patient_id = payload.patient_id
+    mode = payload.mode
+    var = payload.var
+
+    var_list = []
+    if mode == 'data_analyst':
+        for k,v in var.items():
+            var_list.append(f"{k}={v}")
+
+    trigger_cloud_run_job(
+            project_id = "medforce-pilot-backend",
+            region='europe-west1',
+            job_name = 'job-runner',
+            args=["process", f"process_id={process_id}", f"patient_id={patient_id}"] + var_list
+            # args = payload.args
+        )
+    
+    return {
+        "process_id": process_id,
+        "patient_id": patient_id
+    }
 
 
 
